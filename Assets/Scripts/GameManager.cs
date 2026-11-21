@@ -248,9 +248,16 @@ public class GameManager : MonoBehaviour
 
     private void ClearObstacles()
     {
+        // Remove all spawned obstacles.
         foreach (Obstacle obstacle in FindObjectsOfType<Obstacle>())
         {
             Destroy(obstacle.gameObject);
+        }
+
+        // Remove all spawned water bottles.
+        foreach (WaterBottle bottle in FindObjectsOfType<WaterBottle>())
+        {
+            Destroy(bottle.gameObject);
         }
     }
 
@@ -268,7 +275,6 @@ public class GameManager : MonoBehaviour
     {
         runEnded = true;
         gameSpeed = 0f;
-        enabled = false;
 
         player.gameObject.SetActive(false);
         spawner.gameObject.SetActive(false);
@@ -295,7 +301,8 @@ public class GameManager : MonoBehaviour
         if (hiscoreText != null)
         {
             hiscoreText.text =
-                Mathf.FloorToInt(hiscore).ToString("D5");
+    "BEST DISTANCE: " +
+    Mathf.FloorToInt(hiscore).ToString("D5");
         }
     }
 }

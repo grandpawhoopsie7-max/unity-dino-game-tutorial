@@ -30,14 +30,33 @@ public class Spawner : MonoBehaviour
     public float minSpawnRate = 1f;
     public float maxSpawnRate = 2f;
 
+    [Header("Water Bottle Fairness")]
+    public float minimumBottleSpacing = 8f;
+
+    public float mile1BottleInterval = 20f;
+    public float mile2BottleInterval = 25f;
+    public float mile3BottleInterval = 30f;
+
+    private float timeSinceLastBottle;
+
     private void OnEnable()
     {
+        timeSinceLastBottle = 0f;
         ScheduleNextSpawn();
     }
 
     private void OnDisable()
     {
         CancelInvoke();
+    }
+
+    private void Update()
+    {
+        if (GameManager.Instance == null ||
+            !GameManager.Instance.IsRunActive)
+            return;
+
+        timeSinceLastBottle += Time.deltaTime;
     }
 
     public void SetSpawnRates(float minimum, float maximum)
@@ -52,9 +71,33 @@ public class Spawner : MonoBehaviour
         }
     }
 
+    private float GetGuaranteedBottleInterval()
+    {
+        if (GameManager.Instance == null)
+            return mile1BottleInterval;
+
+        switch (GameManager.Instance.CurrentMile)
+        {
+            case 1:
+                return mile1BottleInterval;
+
+            case 2:
+                return mile2BottleInterval;
+
+            case 3:
+                return mile3BottleInterval;
+
+            default:
+                return mile3BottleInterval;
+        }
+    }
+
     private void ScheduleNextSpawn()
     {
-        Invoke(nameof(Spawn), Random.Range(minSpawnRate, maxSpawnRate));
+        Invoke(
+            nameof(Spawn),
+            Random.Range(minSpawnRate, maxSpawnRate)
+        );
     }
 
     private void Spawn()
@@ -63,19 +106,41 @@ public class Spawner : MonoBehaviour
             !GameManager.Instance.IsRunActive)
             return;
 
+        // Guarantee a bottle if enough time has passed.
+        if (timeSinceLastBottle >= GetGuaranteedBottleInterval())
+        {
+            SpawnWaterBottle();
+            ScheduleNextSpawn();
+            return;
+        }
+
         float roll = Random.value;
 
-        // Special event: spawn cactus and bottle together.
+        // Special event: cactus and water bottle together.
         if (roll < combinedSpawnChance)
         {
-            SpawnCombined();
+            if (timeSinceLastBottle >= minimumBottleSpacing)
+            {
+                SpawnCombined();
+            }
+            else
+            {
+                SpawnIndividualEvent();
+            }
         }
         else
         {
-            SpawnIndividual(roll - combinedSpawnChance);
+            SpawnIndividualEvent();
         }
 
         ScheduleNextSpawn();
+    }
+
+    private void SpawnIndividualEvent()
+    {
+        float individualRoll = Random.value;
+
+        SpawnIndividual(individualRoll);
     }
 
     private void SpawnCombined()
@@ -99,6 +164,34 @@ public class Spawner : MonoBehaviour
             bottlePosition,
             Quaternion.identity
         );
+
+        timeSinceLastBottle = 0f;
+    }
+
+    private void SpawnWaterBottle()
+    {
+        if (waterBottlePrefab == null)
+            return;
+
+        Vector3 position = transform.position;
+
+        // Use the water bottle's configured vertical offset.
+        foreach (SpawnableObject obj in objects)
+        {
+            if (obj.prefab == waterBottlePrefab)
+            {
+                position += Vector3.up * obj.verticalOffset;
+                break;
+            }
+        }
+
+        Instantiate(
+            waterBottlePrefab,
+            position,
+            Quaternion.identity
+        );
+
+        timeSinceLastBottle = 0f;
     }
 
     private void SpawnIndividual(float roll)
@@ -109,6 +202,13 @@ public class Spawner : MonoBehaviour
             {
                 if (obj.prefab != null)
                 {
+                    // Prevent randomly spawning bottles too close together.
+                    if (obj.prefab == waterBottlePrefab &&
+                        timeSinceLastBottle < minimumBottleSpacing)
+                    {
+                        return;
+                    }
+
                     Vector3 position = transform.position +
                         Vector3.up * obj.verticalOffset;
 
@@ -117,6 +217,11 @@ public class Spawner : MonoBehaviour
                         position,
                         Quaternion.identity
                     );
+
+                    if (obj.prefab == waterBottlePrefab)
+                    {
+                        timeSinceLastBottle = 0f;
+                    }
                 }
 
                 return;

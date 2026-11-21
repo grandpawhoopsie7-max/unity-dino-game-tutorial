@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
@@ -16,7 +17,11 @@ public class Player : MonoBehaviour
     [Min(0f)] public float jumpStaminaCost = 6f;
     [Min(0f)] public float waterBottleRestore = 25f;
 
+    [Header("Break Free QTE")]
+    public BreakFreeQTE breakFreeQTE;
+
     private float currentStamina;
+    private bool isTripping;
 
     public float CurrentStamina => currentStamina;
     public float MaxStamina => maxStamina;
@@ -30,11 +35,13 @@ public class Player : MonoBehaviour
     private void OnEnable()
     {
         direction = Vector3.zero;
+        isTripping = false;
     }
 
     public void ResetStamina()
     {
         currentStamina = maxStamina;
+        isTripping = false;
 
         if (GameManager.Instance != null)
         {
@@ -48,13 +55,19 @@ public class Player : MonoBehaviour
     {
         GameManager manager = GameManager.Instance;
 
-        if (manager == null || !manager.IsRunActive)
+        if (manager == null || !manager.IsRunActive || isTripping)
             return;
 
         currentStamina = Mathf.Max(
             0f,
             currentStamina - runningDrainPerSecond * Time.deltaTime
         );
+
+        if (currentStamina <= 0f)
+        {
+            BeginTrip(true);
+            return;
+        }
 
         direction += gravity * Time.deltaTime * Vector3.down;
 
@@ -75,10 +88,49 @@ public class Player : MonoBehaviour
         manager.UpdateStaminaHud(currentStamina, maxStamina);
     }
 
+    private void BeginTrip(bool exhaustion)
+    {
+        if (isTripping)
+            return;
+
+        isTripping = true;
+        direction = Vector3.zero;
+
+        if (breakFreeQTE != null)
+        {
+            breakFreeQTE.StartQTE(exhaustion);
+        }
+        else
+        {
+            Debug.LogError(
+                "Break Free QTE is not assigned on the Player!"
+            );
+
+            isTripping = false;
+        }
+    }
+
+    public void RecoverFromTrip(float staminaRestore)
+    {
+        currentStamina = Mathf.Clamp(
+            currentStamina + staminaRestore,
+            0f,
+            maxStamina
+        );
+
+        isTripping = false;
+        direction = Vector3.zero;
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.UpdateStaminaHud(
+                currentStamina, maxStamina
+            );
+        }
+    }
 
     private void OnTriggerEnter(Collider other)
     {
-        // Water bottles restore stamina.
         if (other.CompareTag("WaterBottle"))
         {
             currentStamina = Mathf.Min(
@@ -91,21 +143,17 @@ public class Player : MonoBehaviour
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.UpdateStaminaHud(
-                    currentStamina,
-                    maxStamina
+                    currentStamina, maxStamina
                 );
             }
 
             return;
         }
 
-        // Obstacles cause Game Over.
         if (other.CompareTag("Obstacle"))
         {
             if (GameManager.Instance != null)
-            {
                 GameManager.Instance.GameOver();
-            }
         }
     }
 }

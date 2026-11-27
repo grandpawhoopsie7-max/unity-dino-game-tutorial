@@ -78,6 +78,9 @@ public class AudioSettingsManager : MonoBehaviour
         FindFirstObjectByType<DisplaySettingsManager>()
             ?.ResetDisplayToDefaults();
 
+        FindFirstObjectByType<GameplaySettingsManager>()
+    ?.ResetGameplayToDefaults();
+
         PlayerPrefs.Save();
     }
 

@@ -635,6 +635,7 @@ MonoBehaviour:
   requiredPresses: 6
   timeLimit: 3
   exhaustionStaminaRestore: 35
+  showInstructions: 1
   player: {fileID: 148276}
 --- !u!114 &145053613
 MonoBehaviour:
@@ -2342,6 +2343,7 @@ MonoBehaviour:
   timerText: {fileID: 1209601}
   staminaText: {fileID: 622179807}
   staminaFill: {fileID: 193117484}
+  showTimer: 1
 --- !u!1 &819171837
 GameObject:
   m_ObjectHideFlags: 0
@@ -3655,6 +3657,7 @@ MonoBehaviour:
   clearingDuration: 4
   vignetteGroup: {fileID: 1012993903}
   strongestVignetteAlpha: 0.95
+  environmentalEffectsEnabled: 1
 --- !u!114 &1463192615
 MonoBehaviour:
   m_ObjectHideFlags: 0

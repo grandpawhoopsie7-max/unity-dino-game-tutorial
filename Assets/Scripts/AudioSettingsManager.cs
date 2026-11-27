@@ -69,9 +69,14 @@ public class AudioSettingsManager : MonoBehaviour
 
     public void ResetToDefaults()
     {
+        // Reset audio settings.
         masterVolumeSlider.value = 1f;
         musicVolumeSlider.value = 1f;
         sfxVolumeSlider.value = 1f;
+
+        // Reset display settings.
+        FindFirstObjectByType<DisplaySettingsManager>()
+            ?.ResetDisplayToDefaults();
 
         PlayerPrefs.Save();
     }

@@ -23,21 +23,24 @@ public class SandstormEffect : MonoBehaviour
     [Range(0f, 1f)]
     public float strongestVignetteAlpha = 0.95f;
 
+    [Header("Gameplay Settings")]
+    public bool environmentalEffectsEnabled = true;
+
     private CanvasGroup canvasGroup;
     private Coroutine stormRoutine;
 
     private void Awake()
     {
+        environmentalEffectsEnabled =
+    PlayerPrefs.GetInt("EnvironmentalEffectsEnabled", 1) == 1;
         canvasGroup = GetComponent<CanvasGroup>();
-        canvasGroup.alpha = 0f;
-
-        if (vignetteGroup != null)
-            vignetteGroup.alpha = 0f;
+        SetEffectsVisible(false);
     }
 
     private void OnEnable()
     {
-        stormRoutine = StartCoroutine(SandstormCycle());
+        if (environmentalEffectsEnabled)
+            stormRoutine = StartCoroutine(SandstormCycle());
     }
 
     private void OnDisable()
@@ -48,8 +51,33 @@ public class SandstormEffect : MonoBehaviour
             stormRoutine = null;
         }
 
+        SetEffectsVisible(false);
+    }
+
+    public void SetEnvironmentalEffects(bool enabled)
+    {
+        environmentalEffectsEnabled = enabled;
+
+        if (!enabled)
+        {
+            if (stormRoutine != null)
+            {
+                StopCoroutine(stormRoutine);
+                stormRoutine = null;
+            }
+
+            SetEffectsVisible(false);
+        }
+        else if (isActiveAndEnabled && stormRoutine == null)
+        {
+            stormRoutine = StartCoroutine(SandstormCycle());
+        }
+    }
+
+    private void SetEffectsVisible(bool visible)
+    {
         if (canvasGroup != null)
-            canvasGroup.alpha = 0f;
+            canvasGroup.alpha = visible ? canvasGroup.alpha : 0f;
 
         if (vignetteGroup != null)
             vignetteGroup.alpha = 0f;
@@ -57,7 +85,7 @@ public class SandstormEffect : MonoBehaviour
 
     private IEnumerator SandstormCycle()
     {
-        while (true)
+        while (environmentalEffectsEnabled)
         {
             float waitTime = Random.Range(
                 minimumWait,
@@ -65,6 +93,9 @@ public class SandstormEffect : MonoBehaviour
             );
 
             yield return new WaitForSeconds(waitTime);
+
+            if (!environmentalEffectsEnabled)
+                yield break;
 
             if (GameManager.Instance == null ||
                 GameManager.Instance.CurrentMile != 1 ||
@@ -79,7 +110,13 @@ public class SandstormEffect : MonoBehaviour
                 buildupDuration
             );
 
+            if (!environmentalEffectsEnabled)
+                yield break;
+
             yield return new WaitForSeconds(strongestDuration);
+
+            if (!environmentalEffectsEnabled)
+                yield break;
 
             yield return FadeStorm(
                 strongestAlpha,
@@ -89,6 +126,8 @@ public class SandstormEffect : MonoBehaviour
                 clearingDuration
             );
         }
+
+        stormRoutine = null;
     }
 
     private IEnumerator FadeStorm(
@@ -112,23 +151,18 @@ public class SandstormEffect : MonoBehaviour
 
         while (elapsed < duration)
         {
-            if (GameManager.Instance == null ||
+            if (!environmentalEffectsEnabled ||
+                GameManager.Instance == null ||
                 GameManager.Instance.CurrentMile != 1 ||
                 !GameManager.Instance.IsRunActive)
             {
-                canvasGroup.alpha = 0f;
-
-                if (vignetteGroup != null)
-                    vignetteGroup.alpha = 0f;
-
+                SetEffectsVisible(false);
                 yield break;
             }
 
             elapsed += Time.deltaTime;
 
-            float progress = Mathf.Clamp01(
-                elapsed / duration
-            );
+            float progress = Mathf.Clamp01(elapsed / duration);
 
             canvasGroup.alpha = Mathf.Lerp(
                 startAlpha,

@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -14,6 +15,9 @@ public class BreakFreeQTE : MonoBehaviour
     public float timeLimit = 3f;
     public float exhaustionStaminaRestore = 35f;
 
+    [Header("Gameplay Settings")]
+    public bool showInstructions = true;
+
     [Header("References")]
     public Player player;
 
@@ -26,6 +30,8 @@ public class BreakFreeQTE : MonoBehaviour
     {
         if (qteRunning)
             return;
+        showInstructions =
+    PlayerPrefs.GetInt("ShowQTEInstructions", 1) == 1;
 
         causedByExhaustion = exhaustion;
         currentPresses = 0;
@@ -81,10 +87,21 @@ public class BreakFreeQTE : MonoBehaviour
     {
         if (instructionsText != null)
         {
-            instructionsText.text =
-                "MASH SPACE TO GET UP! " +
-                currentPresses + "/" + requiredPresses;
+            instructionsText.gameObject.SetActive(showInstructions);
+
+            if (showInstructions)
+            {
+                instructionsText.text =
+                    "MASH SPACE TO GET UP! " +
+                    currentPresses + "/" + requiredPresses;
+            }
         }
+    }
+
+    public void SetInstructionsVisibility(bool visible)
+    {
+        showInstructions = visible;
+        UpdateInstructions();
     }
 
     private void FinishQTE(bool succeeded)

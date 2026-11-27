@@ -13,6 +13,15 @@ public class MileHUD : MonoBehaviour
     [Header("Stamina Bar")]
     public Image staminaFill;
 
+    [Header("Gameplay Settings")]
+    public bool showTimer = true;
+
+    private void Start()
+    {
+        showTimer = PlayerPrefs.GetInt("ShowTimer", 1) == 1;
+        UpdateTimerVisibility();
+    }
+
     public void SetLevel(string mileName)
     {
         if (levelText != null)
@@ -22,6 +31,9 @@ public class MileHUD : MonoBehaviour
     public void SetTimer(float timeRemaining)
     {
         if (timerText == null)
+            return;
+
+        if (!showTimer)
             return;
 
         timeRemaining = Mathf.Max(0f, timeRemaining);
@@ -48,5 +60,17 @@ public class MileHUD : MonoBehaviour
         {
             staminaFill.fillAmount = percentage;
         }
+    }
+
+    public void SetTimerVisibility(bool visible)
+    {
+        showTimer = visible;
+        UpdateTimerVisibility();
+    }
+
+    private void UpdateTimerVisibility()
+    {
+        if (timerText != null)
+            timerText.gameObject.SetActive(showTimer);
     }
 }

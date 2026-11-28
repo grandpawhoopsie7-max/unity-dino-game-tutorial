@@ -209,6 +209,9 @@ public class GameManager : MonoBehaviour
 
         mileElapsed = 0f;
 
+        // Recharge Emergency Recovery at the beginning of each new mile.
+        player.RechargeEmergencyRecovery();
+
         ApplyCurrentMile();
         UpdateHud();
     }
@@ -252,6 +255,13 @@ public class GameManager : MonoBehaviour
         foreach (Obstacle obstacle in FindObjectsOfType<Obstacle>())
         {
             Destroy(obstacle.gameObject);
+        }
+
+        // Remove all emergency recovery pickups.
+        foreach (EmergencyRecoveryPickup pickup in
+            FindObjectsOfType<EmergencyRecoveryPickup>())
+        {
+            Destroy(pickup.gameObject);
         }
 
         // Remove all spawned water bottles.

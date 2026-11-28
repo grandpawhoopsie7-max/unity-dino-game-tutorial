@@ -10,10 +10,15 @@ public class BreakFreeQTE : MonoBehaviour
     public TMP_Text instructionsText;
     public Slider progressSlider;
 
-    [Header("QTE Settings")]
+    [Header("Break Free Settings")]
     public int requiredPresses = 6;
     public float timeLimit = 3f;
     public float exhaustionStaminaRestore = 35f;
+
+    [Header("Emergency Recovery Settings")]
+    public int emergencyRequiredPresses = 10;
+    public float emergencyTimeLimit = 4f;
+    public float emergencyStaminaRestore = 25f;
 
     [Header("Gameplay Settings")]
     public bool showInstructions = true;
@@ -22,31 +27,64 @@ public class BreakFreeQTE : MonoBehaviour
     public Player player;
 
     private int currentPresses;
+    private int activeRequiredPresses;
     private float timeRemaining;
     private bool qteRunning;
     private bool causedByExhaustion;
+    private bool isEmergencyQTE;
 
     public void StartQTE(bool exhaustion)
     {
         if (qteRunning)
             return;
-        showInstructions =
-    PlayerPrefs.GetInt("ShowQTEInstructions", 1) == 1;
 
+        showInstructions =
+            PlayerPrefs.GetInt("ShowQTEInstructions", 1) == 1;
+
+        isEmergencyQTE = false;
         causedByExhaustion = exhaustion;
-        currentPresses = 0;
+
+        activeRequiredPresses = requiredPresses;
         timeRemaining = timeLimit;
+
+        BeginQTE();
+    }
+
+    public void StartEmergencyQTE()
+    {
+        if (qteRunning)
+            return;
+
+        showInstructions =
+            PlayerPrefs.GetInt("ShowQTEInstructions", 1) == 1;
+
+        isEmergencyQTE = true;
+        causedByExhaustion = false;
+
+        activeRequiredPresses = emergencyRequiredPresses;
+        timeRemaining = emergencyTimeLimit;
+
+        BeginQTE();
+    }
+
+    private void BeginQTE()
+    {
+        currentPresses = 0;
         qteRunning = true;
 
         if (progressSlider != null)
         {
             progressSlider.minValue = 0;
-            progressSlider.maxValue = requiredPresses;
+            progressSlider.maxValue = activeRequiredPresses;
             progressSlider.value = 0;
         }
 
         if (promptText != null)
-            promptText.text = "YOU'VE FALLEN!";
+        {
+            promptText.text = isEmergencyQTE
+                ? "FIGHT THROUGH EXHAUSTION!"
+                : "YOU'VE FALLEN!";
+        }
 
         UpdateInstructions();
 
@@ -70,7 +108,7 @@ public class BreakFreeQTE : MonoBehaviour
 
             UpdateInstructions();
 
-            if (currentPresses >= requiredPresses)
+            if (currentPresses >= activeRequiredPresses)
             {
                 FinishQTE(true);
                 return;
@@ -85,16 +123,25 @@ public class BreakFreeQTE : MonoBehaviour
 
     private void UpdateInstructions()
     {
-        if (instructionsText != null)
-        {
-            instructionsText.gameObject.SetActive(showInstructions);
+        if (instructionsText == null)
+            return;
 
-            if (showInstructions)
-            {
-                instructionsText.text =
-                    "MASH SPACE TO GET UP! " +
-                    currentPresses + "/" + requiredPresses;
-            }
+        instructionsText.gameObject.SetActive(showInstructions);
+
+        if (!showInstructions)
+            return;
+
+        if (isEmergencyQTE)
+        {
+            instructionsText.text =
+                "MASH SPACE TO RECOVER! " +
+                currentPresses + "/" + activeRequiredPresses;
+        }
+        else
+        {
+            instructionsText.text =
+                "MASH SPACE TO GET UP! " +
+                currentPresses + "/" + activeRequiredPresses;
         }
     }
 
@@ -106,9 +153,19 @@ public class BreakFreeQTE : MonoBehaviour
 
     private void FinishQTE(bool succeeded)
     {
+        bool wasEmergency = isEmergencyQTE;
+
         qteRunning = false;
         Time.timeScale = 1f;
         gameObject.SetActive(false);
+
+        if (wasEmergency)
+        {
+            if (player != null)
+                player.FinishEmergencyRecovery(succeeded);
+
+            return;
+        }
 
         if (succeeded)
         {

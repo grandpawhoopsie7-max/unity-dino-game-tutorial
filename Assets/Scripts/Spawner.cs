@@ -26,6 +26,14 @@ public class Spawner : MonoBehaviour
 
     public float bottleHeightAboveCactus = 1.5f;
 
+    [Header("Rare Emergency Recovery Pickup")]
+    public GameObject emergencyRecoveryPrefab;
+
+    [Range(0f, 1f)]
+    public float emergencyRecoverySpawnChance = 0.01f;
+
+    public float emergencyRecoveryVerticalOffset = 0f;
+
     [Header("Spawn Timing")]
     public float minSpawnRate = 1f;
     public float maxSpawnRate = 2f;
@@ -114,6 +122,15 @@ public class Spawner : MonoBehaviour
             return;
         }
 
+        // Rare emergency recovery pickup.
+        if (emergencyRecoveryPrefab != null &&
+            Random.value < emergencyRecoverySpawnChance)
+        {
+            SpawnEmergencyRecovery();
+            ScheduleNextSpawn();
+            return;
+        }
+
         float roll = Random.value;
 
         // Special event: cactus and water bottle together.
@@ -136,10 +153,23 @@ public class Spawner : MonoBehaviour
         ScheduleNextSpawn();
     }
 
+    private void SpawnEmergencyRecovery()
+    {
+        Vector3 position = transform.position +
+            Vector3.up * emergencyRecoveryVerticalOffset;
+
+        Instantiate(
+            emergencyRecoveryPrefab,
+            position,
+            Quaternion.identity
+        );
+
+        Debug.Log("Rare Emergency Recovery pickup spawned!");
+    }
+
     private void SpawnIndividualEvent()
     {
         float individualRoll = Random.value;
-
         SpawnIndividual(individualRoll);
     }
 
@@ -175,7 +205,6 @@ public class Spawner : MonoBehaviour
 
         Vector3 position = transform.position;
 
-        // Use the water bottle's configured vertical offset.
         foreach (SpawnableObject obj in objects)
         {
             if (obj.prefab == waterBottlePrefab)
@@ -202,7 +231,6 @@ public class Spawner : MonoBehaviour
             {
                 if (obj.prefab != null)
                 {
-                    // Prevent randomly spawning bottles too close together.
                     if (obj.prefab == waterBottlePrefab &&
                         timeSinceLastBottle < minimumBottleSpacing)
                     {
